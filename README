@@ -81,7 +81,7 @@ headroom.
 
 "What happens if I pick too large a number?" If you have swap space on your
 server, it may just slow down. If you have no swap space, it is critical not
-to make this setting stoo large. So if you experience out of memory errors,
+to make this setting too large. If you experience out of memory errors,
 edit /var/local/fcgi/php-cgi-wrapper.fcgi and reduce the PHP_FCGI_CHILDREN setting
 to a smaller figure. Then restart Apache, or just do:
 
