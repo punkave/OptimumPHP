@@ -44,7 +44,9 @@ work out.
 
 USAGE INSTRUCTIONS
 
-To install PHP version 5.3.10, with 20 PHP processes, run this command:
+To install PHP version 5.3.10, with 20 PHP processes, run this command from a
+folder where you're OK with having additional subfolders created, such as
+/usr/local/src:
 
 bash OptimumPHP.bash 5.3.10 20
 
@@ -73,6 +75,18 @@ server to the point where you can't ssh in to tune it.
 more about our rationale for it at the article I've cited twice already. Feedback 
 is welcome there.
 
-Cheers!
+CREDITS
 
-- tom@punkave.com
+OptimumPHP was developed by P'unk Avenue, the creators of Apostrophe. Apostrophe
+is an open source content management system based on the Symfony PHP framework.
+You can bet we have a need for well-configured PHP servers.
+
+Learn more about the Apostrophe project here:
+
+Open Source: http://apostrophenow.org
+
+Hosted Service: http://apostrophenow.com
+
+CONTACT
+
+Tom Boutell mostly maintains this. Feel free to drop him a line at tom@punkave.com.
