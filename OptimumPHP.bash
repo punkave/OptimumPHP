@@ -29,39 +29,48 @@ if [ -z "$CODENAME" ] ; then
 fi
 
 echo "Making sure gcc, Apache, MySQL and various libraries are installed"
-apt-get -y install build-essential apache2 libxml2-dev libcurl4-openssl-dev libcurl4-openssl-dev \
-  libjpeg-dev libpng-dev libfreetype6-dev libicu-dev libmcrypt-dev mysql-server mysql-client libmysqlclient-dev libxslt-dev autoconf || 
+apt-get -y install build-essential apache2 libxml2-dev libcurl4-openssl-dev \
+  libcurl4-openssl-dev libjpeg-dev libpng-dev libfreetype6-dev libicu-dev \
+  libmcrypt-dev mysql-server mysql-client libmysqlclient-dev libxslt-dev \
+  autoconf libltdl-dev || 
   { echo "apt-get installs failed"; exit 1; } 
 
 rm -f php-$VERSION.tar.gz &&
+rm -rf php-$VERSION
 wget --trust-server-names http://us3.php.net/get/php-$VERSION.tar.gz/from/us.php.net/mirror &&
 tar -zxf php-$VERSION.tar.gz &&
 cd php-$VERSION &&
-# mod_php for Apache if we choose to use it. Also installs CLI
-# ACHTUNG: Does NOT play nice with fastcgi/cgi on the same box once
-# pecl extensions get involved ): 
-#'./configure' '--with-apxs2=/usr/bin/apxs2' '--with-gd' '--with-pdo-mysql' '--with-curl' '--with-mysql' '--with-freetype-dir=/usr' '--with-jpeg-dir=/usr' '--with-mcrypt' '--with-zlib' '--enable-mbstring' '--enable-ftp' '--with-xsl' '--with-openssl' '--with-kerberos' '--enable-exif' '--enable-intl' &&
-
 # CGI (fastcgi) binary. Also installs CLI binary
 './configure' '--enable-fastcgi' '--with-gd' '--with-pdo-mysql' '--with-curl' '--with-mysql' '--with-freetype-dir=/usr' '--with-jpeg-dir=/usr' '--with-mcrypt' '--with-zlib' '--enable-mbstring' '--enable-ftp' '--with-xsl' '--with-openssl' '--with-kerberos' '--enable-exif' '--enable-intl' &&
+#5.3.10 won't build in Ubuntu 11.10 without this additional library
+perl -pi -e 's/^EXTRA_LIBS = /EXTRA_LIBS = -lstdc++ /' Makefile
 make clean &&
 make &&
 make install &&
 pecl channel-update pecl.php.net &&
 pecl config-set php_ini /usr/local/lib/php.ini 
 
-echo "Installing pecl packages, temporarily enabling exec in /tmp since pecl insists on it"
+echo "Installing pecl packages"
 
 # pecl's conf settings for tmp folders don't cover all of its
-# usages of /var/tmp. ): Make sure /var/tmp is executable for now
-mount -o,remount,rw,exec /tmp || echo "You probably don't have a noexec tmp folder to begin with, congratulations"
+# usages of /tmp and /var/tmp. So make sure /var/tmp allows exec. But don't
+# mess with it if someone has a tmp partition that isn't actually noexec,
+# or a noexec partition that isn't actually tmp
+TMPFS=`mount | grep /var/tmp | grep noexec | wc -l`
+if [ "$TMPFS" != "0" ] ; then
+  echo "Temporarily enabling exec in /var/tmp since PECL is hardcoded to use it"
+  mount -o,remount,rw,exec /var/tmp || { echo "Unable to remount /var/tmp with exec permissions"; exit 1; }
+fi
 
 (printf "\n" | pecl install -f apc) &&
 pecl install -f mongo
 
 # Regardless of whether any of that failed make sure we
 # put the tmp folder back to noexec
-mount -o,remount,rw,noexec /tmp || echo "This is OK, probably no noexec tmp folder"
+if [ "$TMPFS" != "0" ] ; then
+  echo "Re-disabling exec in /var/tmp"
+  mount -o,remount,rw,noexec /var/tmp || { echo "Unable to remount /var/tmp with noexec permissions"; exit 1; } 
+fi
 
 CONFIGURED=`grep '^extension=mongo.so' /usr/local/lib/php.ini`
 
@@ -184,7 +193,9 @@ chmod -R 755 /var/local/fcgi &&
 # Chicken and egg problems galore if we don't switch to fastcgi before we switch to worker thread MPM
 # Also we use stop, sleep, start because restart is too clever and doesn't finish the job sometimes
 echo "Restarting Apache in a FastCGI configuration" &&
-a2dismod php5 && a2enmod fastcgi && a2enmod actions && apache2ctl stop && sleep 5 && apache2ctl start &&
+if [ -e /etc/apache2/mods-enabled/php5.load ] ; then
+  a2dismod php5 
+fi && a2enmod fastcgi && a2enmod actions && apache2ctl stop && sleep 5 && apache2ctl start &&
 echo "Switching Apache to the Worker MPM configuration" &&
 apt-get -y install apache2-mpm-worker &&
 echo "Stopping and starting because Apache usually botches that the first time after the switch" &&
