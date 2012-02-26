@@ -42,6 +42,15 @@ FastCGI does not support overriding php.ini via .htaccess files. If you have
 any php_value settings, Apache will display an error. Move those settings into
 php.ini.
 
+If you experience out of memory errors, edit /var/local/fcgi/php-cgi-wrapper.fcgi 
+and reduce the PHP_FCGI_CHILDREN setting to a smaller figure. Then restart Apache, 
+or just do:
+
+killall php-cgi
+
+Then hit your server with some PHP traffic to make sure you've brought the
+setting down enough. Repeat if needed.
+
 Read http://punkave.com/window/2010/03/08/faster-php-kill-kill to understand 
 everything that is happening here and how to deal with anything that doesn't 
 work out.
@@ -54,6 +63,8 @@ folder where you're OK with having additional subfolders created, such as
 
 bash OptimumPHP.bash 5.3.10 20
 
+NOTE: choosing the right number of PHP processes is quite important, so read on.
+
 "What's a PHP process?" Each PHP process is a continuously running php-cgi process
 that is reused to handle more connections (and periodically restarted). The number
 of PHP processes you have is the number of simultaneous requests your server
@@ -63,6 +74,17 @@ can field without requiring any to wait.
 you can accommodate roughly 20 on a server with 1GB of RAM:
 
 200MB of overhead + (20 * 40MB) = 1GB (roughly speaking).
+
+"What happens if I pick too large a number?" If you have swap space on your
+server, it may just slow down. If you have no swap space, it is critical not
+to make this setting stoo large. So if you experience out of memory errors,
+edit /var/local/fcgi/php-cgi-wrapper.fcgi and reduce the PHP_FCGI_CHILDREN setting
+to a smaller figure. Then restart Apache, or just do:
+
+killall php-cgi
+
+Then hit your server with some PHP traffic to make sure you've brought the
+setting down enough. Repeat if necessary until you find the sweet spot.
 
 "How big are my PHP processes?" Look at the RSIZE value reported in 'top' for
 your Apache processes (if you are using plain old mod_php - if you don't know,
