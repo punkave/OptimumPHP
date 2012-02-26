@@ -29,6 +29,10 @@ script appends to /usr/local/lib/php.ini.
 Apache and MySQL are also installed if you don't already have them, as well
 as many required libraries for PHP.
 
+Only PHP is installed from source. Everything else is installed via Ubuntu
+packages. We don't believe in maintaining anything from source unless you have
+to, but having the latest version of PHP itself is important to us.
+
 WARNINGS
 
 Command line PHP will wind up in /usr/local/bin. Make sure your PATH looks there
