@@ -1,0 +1,78 @@
+INTRODUCTION
+
+This script installs PHP (and Apache and MySQL, if not already present) according to the
+best practices discussed here:
+
+http://punkave.com/window/2010/03/08/faster-php-kill-kill
+
+You can run it more than once, for instance if you wish to upgrade to a newer
+release of PHP.
+
+LIMITATIONS
+
+This script is for Ubuntu systems ONLY. 
+
+WHAT YOU GET
+
+This script installs the specified version of PHP, from source, obtained directly
+from the official php.net mirrors. PHP is installed to /usr/local/bin. You get
+both the php commmand line binary and the PHP CGI/FastCGI binary.
+
+Your Apache server will be reconfigured to use FastCGI rather than mod_php for
+drastically better average performance when the server is also responsible for
+serving images, CSS, JavaScript, et cetera. See the article cited above for details.
+
+Your php.ini file will be tweaked to better accommodate the needs of Apostrophe and 
+other PHP frameworks. If you're picky about these things, be sure to review what this 
+script appends to /usr/local/lib/php.ini.
+
+Apache and MySQL are also installed if you don't already have them, as well
+as many required libraries for PHP.
+
+WARNINGS
+
+Command line PHP will wind up in /usr/local/bin. Make sure your PATH looks there
+(even for cron jobs that invoke PHP).
+
+FastCGI does not support overriding php.ini via .htaccess files. If you have
+any php_value settings, Apache will display an error. Move those settings into
+php.ini.
+
+Read http://punkave.com/window/2010/03/08/faster-php-kill-kill to understand 
+everything that is happening here and how to deal with anything that doesn't 
+work out.
+
+USAGE INSTRUCTIONS
+
+To install PHP version 5.3.10, with 20 PHP processes, run this command:
+
+bash OptimumPHP.bash 5.3.10 20
+
+"What's a PHP process?" Each PHP process is a continuously running php-cgi process
+that is reused to handle more connections (and periodically restarted). The number
+of PHP processes you have is the number of simultaneous requests your server
+can field without requiring any to wait.
+
+"How many PHP processes can I have?" If your PHP processes top out around 40MB,
+you can accommodate roughly 20 on a server with 1GB of RAM:
+
+200MB of overhead + (20 * 40MB) = 1GB (roughly speaking).
+
+"How big are my PHP processes?" Look at the RSIZE value reported in 'top' for
+your Apache processes (if you are using plain old mod_php - if you don't know,
+you probably have mod_php). If you are already using FastCGI, look at your
+PHP processes. You can subtract a little overhead from Apache processes since
+they do contain a bit of non-PHP related stuff.
+
+"Shouldn't I just run lots of PHP processes and use swap space?" Not really.
+If you have too much traffic you'll just grind your hard drive and slow down.
+Better to let connections queue up and wait gracefully than to completely crush your
+server to the point where you can't ssh in to tune it.
+
+"Why do you do (X) instead of (Y)?" This setup works well for us. You can read
+more about our rationale for it at the article I've cited twice already. Feedback 
+is welcome there.
+
+Cheers!
+
+- tom@punkave.com
