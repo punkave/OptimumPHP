@@ -49,7 +49,8 @@ or just do:
 killall php-cgi
 
 Then hit your server with some PHP traffic to make sure you've brought the
-setting down enough. Repeat if needed.
+setting down enough. Repeat if needed. You'll have best results if your server
+has some swap space available to provide headroom.
 
 Read http://punkave.com/window/2010/03/08/faster-php-kill-kill to understand 
 everything that is happening here and how to deal with anything that doesn't 
@@ -57,11 +58,11 @@ work out.
 
 USAGE INSTRUCTIONS
 
-To install PHP version 5.3.10, with 20 PHP processes, run this command from a
+To install PHP version 5.3.10, with 5 PHP processes, run this command from a
 folder where you're OK with having additional subfolders created, such as
 /usr/local/src:
 
-bash OptimumPHP.bash 5.3.10 20
+bash OptimumPHP.bash 5.3.10 6
 
 NOTE: choosing the right number of PHP processes is quite important, so read on.
 
@@ -70,10 +71,13 @@ that is reused to handle more connections (and periodically restarted). The numb
 of PHP processes you have is the number of simultaneous requests your server
 can field without requiring any to wait.
 
-"How many PHP processes can I have?" If your PHP processes top out around 40MB,
-you can accommodate roughly 20 on a server with 1GB of RAM:
-
-200MB of overhead + (20 * 40MB) = 1GB (roughly speaking).
+"How many PHP processes can I have?" If your PHP processes top out around 80MB,
+then 6 processes will take up 480MB, close to half the RAM on a server with
+1GB of RAM (which must also run MySQL, Apache and so on). If you have a server
+with no swap space you want to make sure you don't run out as 500 errors
+will follow. Whether your server is physical or virtual, we recommend 
+swap space equal to at least half the physical memory size to allow reasonable
+headroom.
 
 "What happens if I pick too large a number?" If you have swap space on your
 server, it may just slow down. If you have no swap space, it is critical not
