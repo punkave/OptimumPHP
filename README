@@ -63,7 +63,7 @@ work out.
 
 USAGE INSTRUCTIONS
 
-To install PHP version 5.3.10, with 5 PHP processes, run this command from a
+To install PHP version 5.3.10 with 15 PHP processes, run this command from a
 folder where you're OK with having additional subfolders created, such as
 /usr/local/src:
 
