@@ -211,6 +211,9 @@ echo "AddType application/x-httpd-php .php"
 echo
 echo "Comment it out and restart Apache."
 echo
+echo "(Leave fastcgi.conf alone, you DO want the directives in"
+echo "that file.)"
+echo
 echo "Still have trouble? See:"
 echo
 echo "http://punkave.com/window/2010/03/08/faster-php-kill-kill"
