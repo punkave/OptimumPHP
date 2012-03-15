@@ -200,5 +200,18 @@ echo "Switching Apache to the Worker MPM configuration" &&
 apt-get -y install apache2-mpm-worker &&
 echo "Stopping and starting because Apache usually botches that the first time after the switch" &&
 sleep 5 && apache2ctl stop && sleep 5 && apache2ctl start && 
-echo "DONE! Now go check your websites. If you have trouble see http://punkave.com/window/2010/03/08/faster-php-kill-kill"
+echo "DONE! Now go check your websites."
+echo
+echo "IF YOUR PHP SOURCE CODE JUST DOWNLOADS AS A FILE TO THE BROWSER:"
+echo
+echo "You probably have a stray line like this still in an apache "
+echo "configuration file, possibly one of your files in sites-enabled:"
+echo
+echo "AddType application/x-httpd-php .php"
+echo
+echo "Comment it out and restart Apache."
+echo
+echo "Still have trouble? See:"
+echo
+echo "http://punkave.com/window/2010/03/08/faster-php-kill-kill"
 
