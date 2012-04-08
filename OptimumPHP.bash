@@ -21,10 +21,16 @@ fi
 VERSION=$1
 LIMIT=$2
 
+UBUNTU=`uname -v | grep -i ubuntu | wc -l`
+if [ "$UBUNTU" != "1" ] ; then
+  echo "This doesn't smell like an Ubuntu Linux box."
+  exit 1
+fi
+
 CODENAME=`cat /etc/lsb-release | grep DISTRIB_CODENAME | perl -p -e 's/DISTRIB_CODENAME=(\w+)/$1/'`
 
 if [ -z "$CODENAME" ] ; then
-  echo "This doesn't smell like an Ubuntu box (or Perl is not installed yet)."
+  echo "This doesn't smell like a Linux box (or Perl is not installed yet)."
   exit 1
 fi
 
