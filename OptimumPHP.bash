@@ -21,8 +21,8 @@ fi
 VERSION=$1
 LIMIT=$2
 
-UBUNTU=`uname -v | grep -i ubuntu | wc -l`
-if [ "$UBUNTU" != "1" ] ; then
+UBUNTU=`grep -i ubuntu /etc/lsb-release | wc -l`
+if [ "$UBUNTU" = "0" ] ; then
   echo "This doesn't smell like an Ubuntu Linux box."
   exit 1
 fi
