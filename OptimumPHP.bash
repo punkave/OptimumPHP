@@ -266,7 +266,7 @@ if [ "$CENTOS" = "1" ] ; then
   # without it, citing an attempt to access this folder as user -1
   # (nobody), even though Apache is configured to run as 'apache' by default
   mkdir -p /etc/httpd/fastcgi-ipc/dynamic
-  chmod -R 755 /etc/httpd/fastcgi-ipc/dynamic
+  chmod -R 777 /etc/httpd/fastcgi-ipc
   cat > /etc/httpd/conf.d/fastcgi.conf <<EOM
 LoadModule fastcgi_module modules/mod_fastcgi.so
 # One shared PHP-managed fastcgi for all sites
