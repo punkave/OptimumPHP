@@ -26,23 +26,24 @@ if [ "$UBUNTU" = "0" ] ; then
   CENTOS=`uname -a | grep -i centos | wc -l` 
   if [ "$CENTOS" = "0" ] ; then
     echo "This doesn't smell like either Ubuntu or CentOS. Giving up."
-  exit 1
+    exit 1
+  fi
 fi
 
 if [ "$UBUNTU" = "1" ] ; then
-	CODENAME=`cat /etc/lsb-release | grep DISTRIB_CODENAME | perl -p -e 's/DISTRIB_CODENAME=(\w+)/$1/'`
+  CODENAME=`cat /etc/lsb-release | grep DISTRIB_CODENAME | perl -p -e 's/DISTRIB_CODENAME=(\w+)/$1/'`
 
-	if [ -z "$CODENAME" ] ; then
-		echo "This doesn't smell like a Linux box (or Perl is not installed yet)."
-		exit 1
-	fi
+  if [ -z "$CODENAME" ] ; then
+    echo "This doesn't smell like a Linux box (or Perl is not installed yet)."
+    exit 1
+  fi
 
-	echo "Making sure gcc, Apache, MySQL and various libraries are installed"
-	apt-get -y install build-essential apache2 libxml2-dev libcurl4-openssl-dev \
-		libcurl4-openssl-dev libjpeg-dev libpng-dev libfreetype6-dev libicu-dev \
-		libmcrypt-dev mysql-server mysql-client libmysqlclient-dev libxslt-dev \
-		autoconf libltdl-dev || 
-		{ echo "apt-get installs failed"; exit 1; } 
+  echo "Making sure gcc, Apache, MySQL and various libraries are installed"
+  apt-get -y install build-essential apache2 libxml2-dev libcurl4-openssl-dev \
+    libcurl4-openssl-dev libjpeg-dev libpng-dev libfreetype6-dev libicu-dev \
+    libmcrypt-dev mysql-server mysql-client libmysqlclient-dev libxslt-dev \
+    autoconf libltdl-dev || 
+    { echo "apt-get installs failed"; exit 1; } 
 fi
 
 if [ "$CENTOS" = "1" ] ; then
@@ -161,95 +162,93 @@ if [ -z "$MONGO" ] ; then
   exit 1
 fi
 
-
-
 if [ "$UBUNTU" = "1" ] ; then
   MULTIVERSE=`grep -c multiverse /etc/apt/sources.list`
 
-	if [ "$MULTIVERSE" == "0" ] ; then
-		echo "Adding multiverse repositories to /etc/apt/sources.list so we can install real fastcgi."
-		echo "(fcgid is not an adequate substitute, it doesn't support APC.)"
-		cat  >> /etc/apt/sources.list <<EOM
+  if [ "$MULTIVERSE" == "0" ] ; then
+    echo "Adding multiverse repositories to /etc/apt/sources.list so we can install real fastcgi."
+    echo "(fcgid is not an adequate substitute, it doesn't support APC.)"
+    cat  >> /etc/apt/sources.list <<EOM
 # tom@punkave.com: we want multiverse support so we can have real mod_fastcgi
 deb http://us.archive.ubuntu.com/ubuntu/ $CODENAME multiverse
 deb-src http://us.archive.ubuntu.com/ubuntu/ $CODENAME multiverse
 deb http://us.archive.ubuntu.com/ubuntu/ $CODENAME-updates multiverse
 deb-src http://us.archive.ubuntu.com/ubuntu/ $CODENAME-updates multiverse
 EOM
-	fi
+  fi
 
-	apt-get update &&
-	apt-get install libapache2-mod-fastcgi &&
+  apt-get update &&
+  apt-get install libapache2-mod-fastcgi &&
 
-	cat > /etc/apache2/mods-available/fastcgi.conf <<EOM
-	<IfModule mod_fastcgi.c>
-		# One shared PHP-managed fastcgi for all sites
-		Alias /fcgi /var/local/fcgi
-		# IMPORTANT: without this we get more than one instance
-		# of our wrapper, which itself spawns many PHP processes, so
-		# that would be Bad (tm)
-		FastCgiConfig -idle-timeout 20 -maxClassProcesses 1
-		<Directory /var/local/fcgi>
-			# Use the + so we don't clobber other options that
-			# may be needed. You might want FollowSymLinks here
-			Options +ExecCGI
-		</Directory>
-		AddType application/x-httpd-php5 .php
-		AddHandler fastcgi-script .fcgi
-		Action application/x-httpd-php5 /fcgi/php-cgi-wrapper.fcgi
-	</IfModule>
-	EOM
+  cat > /etc/apache2/mods-available/fastcgi.conf <<EOM
+  <IfModule mod_fastcgi.c>
+    # One shared PHP-managed fastcgi for all sites
+    Alias /fcgi /var/local/fcgi
+    # IMPORTANT: without this we get more than one instance
+    # of our wrapper, which itself spawns many PHP processes, so
+    # that would be Bad (tm)
+    FastCgiConfig -idle-timeout 20 -maxClassProcesses 1
+    <Directory /var/local/fcgi>
+      # Use the + so we don't clobber other options that
+      # may be needed. You might want FollowSymLinks here
+      Options +ExecCGI
+    </Directory>
+    AddType application/x-httpd-php5 .php
+    AddHandler fastcgi-script .fcgi
+    Action application/x-httpd-php5 /fcgi/php-cgi-wrapper.fcgi
+  </IfModule>
+  EOM
 
-	mkdir -p /var/local/fcgi/ &&
+  mkdir -p /var/local/fcgi/ &&
 
-	cat > /var/local/fcgi/php-cgi-wrapper.fcgi <<EOM
-	#!/bin/sh
+  cat > /var/local/fcgi/php-cgi-wrapper.fcgi <<EOM
+  #!/bin/sh
 
-	# We like to use the same settings we formerly used for apache mod_php. 
-	# You don't want this if your php.ini is in /etc
-	PHPRC="/etc/php5/apache2"
-	export PHPRC
-	# We can accommodate about 20 50mb processes on a 1GB slice. More than that
-	# will swap, making people wait and locking us out of our own box.
-	# Better idea: just make people wait to begin with
-	PHP_FCGI_CHILDREN=$LIMIT
-	PHP_FCGI_MAX_REQUESTS=100
-	export PHP_FCGI_CHILDREN
-	exec /usr/local/bin/php-cgi -c /usr/local/lib/php.ini
-	EOM
+  # We like to use the same settings we formerly used for apache mod_php. 
+  # You don't want this if your php.ini is in /etc
+  PHPRC="/etc/php5/apache2"
+  export PHPRC
+  # We can accommodate about 20 50mb processes on a 1GB slice. More than that
+  # will swap, making people wait and locking us out of our own box.
+  # Better idea: just make people wait to begin with
+  PHP_FCGI_CHILDREN=$LIMIT
+  PHP_FCGI_MAX_REQUESTS=100
+  export PHP_FCGI_CHILDREN
+  exec /usr/local/bin/php-cgi -c /usr/local/lib/php.ini
+  EOM
 
-	chmod -R 755 /var/local/fcgi &&
-	# Chicken and egg problems galore if we don't switch to fastcgi before we switch to worker thread MPM
-	# Also we use stop, sleep, start because restart is too clever and doesn't finish the job sometimes
-	echo "Restarting Apache in a FastCGI configuration" &&
-	if [ -e /etc/apache2/mods-enabled/php5.load ] ; then
-		a2dismod php5 
-	fi && a2enmod fastcgi && a2enmod actions && apache2ctl stop && sleep 5 && apache2ctl start &&
-	echo "Switching Apache to the Worker MPM configuration" &&
-	apt-get -y install apache2-mpm-worker &&
-	echo "Stopping and starting because Apache usually botches that the first time after the switch" &&
-	sleep 5 && apache2ctl stop && sleep 5 && apache2ctl start && 
-	echo "DONE! Now go check your websites."
-	echo
-	echo "IF YOUR PHP SOURCE CODE JUST DOWNLOADS AS A FILE TO THE BROWSER:"
-	echo
-	echo "You probably have a stray line like this still in an apache "
-	echo "configuration file, possibly one of your files in sites-enabled:"
-	echo
-	echo "AddType application/x-httpd-php .php"
-	echo
-	echo "Comment it out and restart Apache."
-	echo
-	echo "(Leave fastcgi.conf alone, you DO want the directives in"
-	echo "that file.)"
-	echo
-	echo "Still have trouble? See:"
-	echo
-	echo "http://punkave.com/window/2010/03/08/faster-php-kill-kill"
+  chmod -R 755 /var/local/fcgi &&
+  # Chicken and egg problems galore if we don't switch to fastcgi before we switch to worker thread MPM
+  # Also we use stop, sleep, start because restart is too clever and doesn't finish the job sometimes
+  echo "Restarting Apache in a FastCGI configuration" &&
+  if [ -e /etc/apache2/mods-enabled/php5.load ] ; then
+    a2dismod php5 
+  fi && a2enmod fastcgi && a2enmod actions && apache2ctl stop && sleep 5 && apache2ctl start &&
+  echo "Switching Apache to the Worker MPM configuration" &&
+  apt-get -y install apache2-mpm-worker &&
+  echo "Stopping and starting because Apache usually botches that the first time after the switch" &&
+  sleep 5 && apache2ctl stop && sleep 5 && apache2ctl start && 
+  echo "DONE! Now go check your websites."
+  echo
+  echo "IF YOUR PHP SOURCE CODE JUST DOWNLOADS AS A FILE TO THE BROWSER:"
+  echo
+  echo "You probably have a stray line like this still in an apache "
+  echo "configuration file, possibly one of your files in sites-enabled:"
+  echo
+  echo "AddType application/x-httpd-php .php"
+  echo
+  echo "Comment it out and restart Apache."
+  echo
+  echo "(Leave fastcgi.conf alone, you DO want the directives in"
+  echo "that file.)"
+  echo
+  echo "Still have trouble? See:"
+  echo
+  echo "http://punkave.com/window/2010/03/08/faster-php-kill-kill"
 fi
 
 if [ "$CENTOS" = "1" ] ; then
-	cat > /etc/apache2/conf.d/fastcgi.conf <<EOM
+  cat > /etc/apache2/conf.d/fastcgi.conf <<EOM
 LoadModule fastcgi_module modules/mod_fastcgi.so
 # One shared PHP-managed fastcgi for all sites
 Alias /fcgi /var/local/fcgi
@@ -258,18 +257,18 @@ Alias /fcgi /var/local/fcgi
 # that would be Bad (tm)
 FastCgiConfig -idle-timeout 20 -maxClassProcesses 1
 <Directory /var/local/fcgi>
-	# Use the + so we don't clobber other options that
-	# may be needed. You might want FollowSymLinks here
-	Options +ExecCGI
+  # Use the + so we don't clobber other options that
+  # may be needed. You might want FollowSymLinks here
+  Options +ExecCGI
 </Directory>
 AddType application/x-httpd-php5 .php
 AddHandler fastcgi-script .fcgi
 Action application/x-httpd-php5 /fcgi/php-cgi-wrapper.fcgi
 EOM
 
-	mkdir -p /var/local/fcgi/ &&
+  mkdir -p /var/local/fcgi/ &&
 
-	cat > /var/local/fcgi/php-cgi-wrapper.fcgi <<EOM
+  cat > /var/local/fcgi/php-cgi-wrapper.fcgi <<EOM
 #!/bin/sh
 
 # We like to use the same settings we formerly used for apache mod_php. 
@@ -285,38 +284,38 @@ export PHP_FCGI_CHILDREN
 exec /usr/local/bin/php-cgi -c /usr/local/lib/php.ini
 EOM
 
-	chmod -R 755 /var/local/fcgi &&
-	# Chicken and egg problems galore if we don't switch to fastcgi before we 
+  chmod -R 755 /var/local/fcgi &&
+  # Chicken and egg problems galore if we don't switch to fastcgi before we 
   # switch to worker thread MPM
-	# Also we use stop, sleep, start because restart is too clever and doesn't 
+  # Also we use stop, sleep, start because restart is too clever and doesn't 
   # finish the job sometimes
-	echo "Restarting Apache in a FastCGI configuration" &&
-	if [ -e /etc/httpd/conf.d/php.conf ] ; then
-		mv /etc/httpd/conf.d/php.conf /etc/httpd/conf.d/php.conf.disabled-see-fastcgi
+  echo "Restarting Apache in a FastCGI configuration" &&
+  if [ -e /etc/httpd/conf.d/php.conf ] ; then
+    mv /etc/httpd/conf.d/php.conf /etc/httpd/conf.d/php.conf.disabled-see-fastcgi
   fi
   service httpd stop &&
   sleep 5 &&
   service httpd start &&
-	echo "Switching Apache to the Worker MPM configuration" &&
+  echo "Switching Apache to the Worker MPM configuration" &&
   perl -pi -e 's/^#HTTPD.*/HTTPD=/usr/sbin/httpd.worker/' /etc/sysconfig/httpd &&
-	echo "Stopping and starting because Apache usually botches that the first time after the switch" &&
-	sleep 5 && service httpd stop && sleep 5 && service httpd start && 
-	echo "DONE! Now go check your websites."
-	echo
-	echo "IF YOUR PHP SOURCE CODE JUST DOWNLOADS AS A FILE TO THE BROWSER:"
-	echo
-	echo "You probably have a stray line like this still in an apache "
-	echo "configuration file, possibly one of your files in sites-enabled:"
-	echo
-	echo "AddType application/x-httpd-php .php"
-	echo
-	echo "Comment it out and restart Apache."
-	echo
-	echo "(Leave fastcgi.conf alone, you DO want the directives in"
-	echo "that file.)"
-	echo
-	echo "Still have trouble? See:"
-	echo
-	echo "http://punkave.com/window/2010/03/08/faster-php-kill-kill"
+  echo "Stopping and starting because Apache usually botches that the first time after the switch" &&
+  sleep 5 && service httpd stop && sleep 5 && service httpd start && 
+  echo "DONE! Now go check your websites."
+  echo
+  echo "IF YOUR PHP SOURCE CODE JUST DOWNLOADS AS A FILE TO THE BROWSER:"
+  echo
+  echo "You probably have a stray line like this still in an apache "
+  echo "configuration file, possibly one of your files in sites-enabled:"
+  echo
+  echo "AddType application/x-httpd-php .php"
+  echo
+  echo "Comment it out and restart Apache."
+  echo
+  echo "(Leave fastcgi.conf alone, you DO want the directives in"
+  echo "that file.)"
+  echo
+  echo "Still have trouble? See:"
+  echo
+  echo "http://punkave.com/window/2010/03/08/faster-php-kill-kill"
 fi
 
