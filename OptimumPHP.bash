@@ -63,6 +63,7 @@ if [ "$CENTOS" = "1" ] ; then
     { echo "fastcgi compile from source failed, fcgid won't do"; exit 1; }
 fi
 
+cd /tmp
 rm -f php-$VERSION.tar.gz &&
 rm -rf php-$VERSION &&
 # --trust-server-names doesn't exist in CentOS 5.6 build of wget
