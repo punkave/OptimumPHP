@@ -47,12 +47,13 @@ if [ "$UBUNTU" = "1" ] ; then
 fi
 
 if [ "$CENTOS" = "1" ] ; then
-  yum -y install gcc httpd libxml2-devel curl-devel openssl-devel libjpeg-devel libpng-devel freetype-devel libicu-devel libmcrypt-devel mysql-server mysql mysql-devel libxslt-devel autoconf libtool-ltdl-devel httpd-devel apr-devel apr ||
+  yum -y install gcc gcc-c++ httpd libxml2-devel curl-devel openssl-devel libjpeg-devel libpng-devel freetype-devel libicu-devel libmcrypt-devel mysql-server mysql mysql-devel libxslt-devel autoconf libtool-ltdl-devel httpd-devel apr-devel apr ||
     { echo "yum installs failed"; exit 1; }
   cd /tmp &&
   rm -rf fastcgi-compile &&
   mkdir fastcgi-compile &&
   cd fastcgi-compile &&
+  rm -rf mod_fastcgi* &&
   wget http://www.fastcgi.com/dist/mod_fastcgi-current.tar.gz &&
   tar -zxf mod_fastcgi-current.tar.gz &&
   cd mod_fastcgi* &&
@@ -63,8 +64,9 @@ if [ "$CENTOS" = "1" ] ; then
 fi
 
 rm -f php-$VERSION.tar.gz &&
-rm -rf php-$VERSION
-wget --trust-server-names http://us3.php.net/get/php-$VERSION.tar.gz/from/us.php.net/mirror &&
+rm -rf php-$VERSION &&
+# --trust-server-names doesn't exist in CentOS build of wget
+wget http://us3.php.net/get/php-$VERSION.tar.gz/from/us.php.net/mirror -O php-$VERSION.tar.gz &&
 tar -zxf php-$VERSION.tar.gz &&
 cd php-$VERSION &&
 # CGI (fastcgi) binary. Also installs CLI binary
@@ -202,20 +204,16 @@ EOM
   mkdir -p /var/local/fcgi/ &&
 
   cat > /var/local/fcgi/php-cgi-wrapper.fcgi <<EOM
-  #!/bin/sh
+#!/bin/sh
 
-  # We like to use the same settings we formerly used for apache mod_php. 
-  # You don't want this if your php.ini is in /etc
-  PHPRC="/etc/php5/apache2"
-  export PHPRC
-  # We can accommodate about 20 50mb processes on a 1GB slice. More than that
-  # will swap, making people wait and locking us out of our own box.
-  # Better idea: just make people wait to begin with
-  PHP_FCGI_CHILDREN=$LIMIT
-  PHP_FCGI_MAX_REQUESTS=100
-  export PHP_FCGI_CHILDREN
-  exec /usr/local/bin/php-cgi -c /usr/local/lib/php.ini
-  EOM
+# We can accommodate about 20 50mb processes on a 1GB slice. More than that
+# will swap, making people wait and locking us out of our own box.
+# Better idea: just make people wait to begin with
+PHP_FCGI_CHILDREN=$LIMIT
+PHP_FCGI_MAX_REQUESTS=100
+export PHP_FCGI_CHILDREN
+exec /usr/local/bin/php-cgi -c /usr/local/lib/php.ini
+EOM
 
   chmod -R 755 /var/local/fcgi &&
   # Chicken and egg problems galore if we don't switch to fastcgi before we switch to worker thread MPM
@@ -248,7 +246,7 @@ EOM
 fi
 
 if [ "$CENTOS" = "1" ] ; then
-  cat > /etc/apache2/conf.d/fastcgi.conf <<EOM
+  cat > /etc/httpd/conf.d/fastcgi.conf <<EOM
 LoadModule fastcgi_module modules/mod_fastcgi.so
 # One shared PHP-managed fastcgi for all sites
 Alias /fcgi /var/local/fcgi
@@ -271,14 +269,12 @@ EOM
   cat > /var/local/fcgi/php-cgi-wrapper.fcgi <<EOM
 #!/bin/sh
 
-# We like to use the same settings we formerly used for apache mod_php. 
-# You don't want this if your php.ini is in /etc
-PHPRC="/etc/php5/apache2"
-export PHPRC
 # We can accommodate about 20 50mb processes on a 1GB slice. More than that
 # will swap, making people wait and locking us out of our own box.
 # Better idea: just make people wait to begin with
 PHP_FCGI_CHILDREN=$LIMIT
+# Limit total requests per process to deal with inevitable PHP memory 
+# leak bugs (in PHP itself, that is)
 PHP_FCGI_MAX_REQUESTS=100
 export PHP_FCGI_CHILDREN
 exec /usr/local/bin/php-cgi -c /usr/local/lib/php.ini
