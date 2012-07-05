@@ -46,38 +46,38 @@ if [ "$UBUNTU" = "1" ] ; then
     { echo "apt-get installs failed"; exit 1; } 
 fi
 
-#if [ "$CENTOS" = "1" ] ; then
-#  yum -y install gcc gcc-c++ httpd libxml2-devel curl-devel openssl-devel libjpeg-devel libpng-devel freetype-devel libicu-devel libmcrypt-devel mysql-server mysql mysql-devel libxslt-devel autoconf libtool-ltdl-devel httpd-devel apr-devel apr subversion ||
-#    { echo "yum installs failed"; exit 1; }
-#  cd /tmp &&
-#  rm -rf fastcgi-compile &&
-#  mkdir fastcgi-compile &&
-#  cd fastcgi-compile &&
-#  rm -rf mod_fastcgi* &&
-#  wget http://www.fastcgi.com/dist/mod_fastcgi-current.tar.gz &&
-#  tar -zxf mod_fastcgi-current.tar.gz &&
-#  cd mod_fastcgi* &&
-#  cp Makefile.AP2 Makefile &&
-#  make top_dir=/usr/lib64/httpd &&
-#  make install top_dir=/usr/lib64/httpd ||
-#    { echo "fastcgi compile from source failed, fcgid won't do"; exit 1; }
-#fi
-#
-#rm -f php-$VERSION.tar.gz &&
-#rm -rf php-$VERSION &&
-## --trust-server-names doesn't exist in CentOS build of wget
-#wget http://us3.php.net/get/php-$VERSION.tar.gz/from/us.php.net/mirror -O php-$VERSION.tar.gz &&
-#tar -zxf php-$VERSION.tar.gz &&
-#cd php-$VERSION &&
-## CGI (fastcgi) binary. Also installs CLI binary
-#'./configure' '--enable-cgi' '--enable-fastcgi' '--with-gd' '--with-pdo-mysql' '--with-curl' '--with-mysql' '--with-freetype-dir=/usr' '--with-jpeg-dir=/usr' '--with-mcrypt' '--with-zlib' '--enable-mbstring' '--enable-ftp' '--with-xsl' '--with-openssl' '--with-kerberos' '--enable-exif' '--enable-intl' &&
-##5.3.10 won't build in Ubuntu 11.10 without this additional library
-#perl -pi -e 's/^EXTRA_LIBS = /EXTRA_LIBS = -lstdc++ /' Makefile
-#make clean &&
-#make &&
-#make install &&
-#pecl channel-update pecl.php.net &&
-#pecl config-set php_ini /usr/local/lib/php.ini 
+if [ "$CENTOS" = "1" ] ; then
+  yum -y install gcc gcc-c++ httpd libxml2-devel curl-devel openssl-devel libjpeg-devel libpng-devel freetype-devel libicu-devel libmcrypt-devel mysql-server mysql mysql-devel libxslt-devel autoconf libtool-ltdl-devel httpd-devel apr-devel apr subversion ||
+    { echo "yum installs failed"; exit 1; }
+  cd /tmp &&
+  rm -rf fastcgi-compile &&
+  mkdir fastcgi-compile &&
+  cd fastcgi-compile &&
+  rm -rf mod_fastcgi* &&
+  wget http://www.fastcgi.com/dist/mod_fastcgi-current.tar.gz &&
+  tar -zxf mod_fastcgi-current.tar.gz &&
+  cd mod_fastcgi* &&
+  cp Makefile.AP2 Makefile &&
+  make top_dir=/usr/lib64/httpd &&
+  make install top_dir=/usr/lib64/httpd ||
+    { echo "fastcgi compile from source failed, fcgid won't do"; exit 1; }
+fi
+
+rm -f php-$VERSION.tar.gz &&
+rm -rf php-$VERSION &&
+# --trust-server-names doesn't exist in CentOS 5.6 build of wget
+wget http://us3.php.net/get/php-$VERSION.tar.gz/from/us.php.net/mirror -O php-$VERSION.tar.gz &&
+tar -zxf php-$VERSION.tar.gz &&
+cd php-$VERSION &&
+# CGI (fastcgi) binary. Also installs CLI binary
+'./configure' '--enable-cgi' '--enable-fastcgi' '--with-gd' '--with-pdo-mysql' '--with-curl' '--with-mysql' '--with-freetype-dir=/usr' '--with-jpeg-dir=/usr' '--with-mcrypt' '--with-zlib' '--enable-mbstring' '--enable-ftp' '--with-xsl' '--with-openssl' '--with-kerberos' '--enable-exif' '--enable-intl' &&
+#5.3.10 won't build in Ubuntu 11.10 without this additional library
+perl -pi -e 's/^EXTRA_LIBS = /EXTRA_LIBS = -lstdc++ /' Makefile
+make clean &&
+make &&
+make install &&
+pecl channel-update pecl.php.net &&
+pecl config-set php_ini /usr/local/lib/php.ini 
 #
 echo "Installing pecl packages"
 
