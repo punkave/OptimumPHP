@@ -46,39 +46,39 @@ if [ "$UBUNTU" = "1" ] ; then
     { echo "apt-get installs failed"; exit 1; } 
 fi
 
-if [ "$CENTOS" = "1" ] ; then
-  yum -y install gcc gcc-c++ httpd libxml2-devel curl-devel openssl-devel libjpeg-devel libpng-devel freetype-devel libicu-devel libmcrypt-devel mysql-server mysql mysql-devel libxslt-devel autoconf libtool-ltdl-devel httpd-devel apr-devel apr ||
-    { echo "yum installs failed"; exit 1; }
-  cd /tmp &&
-  rm -rf fastcgi-compile &&
-  mkdir fastcgi-compile &&
-  cd fastcgi-compile &&
-  rm -rf mod_fastcgi* &&
-  wget http://www.fastcgi.com/dist/mod_fastcgi-current.tar.gz &&
-  tar -zxf mod_fastcgi-current.tar.gz &&
-  cd mod_fastcgi* &&
-  cp Makefile.AP2 Makefile &&
-  make top_dir=/usr/lib64/httpd &&
-  make install top_dir=/usr/lib64/httpd ||
-    { echo "fastcgi compile from source failed, fcgid won't do"; exit 1; }
-fi
-
-rm -f php-$VERSION.tar.gz &&
-rm -rf php-$VERSION &&
-# --trust-server-names doesn't exist in CentOS build of wget
-wget http://us3.php.net/get/php-$VERSION.tar.gz/from/us.php.net/mirror -O php-$VERSION.tar.gz &&
-tar -zxf php-$VERSION.tar.gz &&
-cd php-$VERSION &&
-# CGI (fastcgi) binary. Also installs CLI binary
-'./configure' '--enable-cgi' '--enable-fastcgi' '--with-gd' '--with-pdo-mysql' '--with-curl' '--with-mysql' '--with-freetype-dir=/usr' '--with-jpeg-dir=/usr' '--with-mcrypt' '--with-zlib' '--enable-mbstring' '--enable-ftp' '--with-xsl' '--with-openssl' '--with-kerberos' '--enable-exif' '--enable-intl' &&
-#5.3.10 won't build in Ubuntu 11.10 without this additional library
-perl -pi -e 's/^EXTRA_LIBS = /EXTRA_LIBS = -lstdc++ /' Makefile
-make clean &&
-make &&
-make install &&
-pecl channel-update pecl.php.net &&
-pecl config-set php_ini /usr/local/lib/php.ini 
-
+#if [ "$CENTOS" = "1" ] ; then
+#  yum -y install gcc gcc-c++ httpd libxml2-devel curl-devel openssl-devel libjpeg-devel libpng-devel freetype-devel libicu-devel libmcrypt-devel mysql-server mysql mysql-devel libxslt-devel autoconf libtool-ltdl-devel httpd-devel apr-devel apr subversion ||
+#    { echo "yum installs failed"; exit 1; }
+#  cd /tmp &&
+#  rm -rf fastcgi-compile &&
+#  mkdir fastcgi-compile &&
+#  cd fastcgi-compile &&
+#  rm -rf mod_fastcgi* &&
+#  wget http://www.fastcgi.com/dist/mod_fastcgi-current.tar.gz &&
+#  tar -zxf mod_fastcgi-current.tar.gz &&
+#  cd mod_fastcgi* &&
+#  cp Makefile.AP2 Makefile &&
+#  make top_dir=/usr/lib64/httpd &&
+#  make install top_dir=/usr/lib64/httpd ||
+#    { echo "fastcgi compile from source failed, fcgid won't do"; exit 1; }
+#fi
+#
+#rm -f php-$VERSION.tar.gz &&
+#rm -rf php-$VERSION &&
+## --trust-server-names doesn't exist in CentOS build of wget
+#wget http://us3.php.net/get/php-$VERSION.tar.gz/from/us.php.net/mirror -O php-$VERSION.tar.gz &&
+#tar -zxf php-$VERSION.tar.gz &&
+#cd php-$VERSION &&
+## CGI (fastcgi) binary. Also installs CLI binary
+#'./configure' '--enable-cgi' '--enable-fastcgi' '--with-gd' '--with-pdo-mysql' '--with-curl' '--with-mysql' '--with-freetype-dir=/usr' '--with-jpeg-dir=/usr' '--with-mcrypt' '--with-zlib' '--enable-mbstring' '--enable-ftp' '--with-xsl' '--with-openssl' '--with-kerberos' '--enable-exif' '--enable-intl' &&
+##5.3.10 won't build in Ubuntu 11.10 without this additional library
+#perl -pi -e 's/^EXTRA_LIBS = /EXTRA_LIBS = -lstdc++ /' Makefile
+#make clean &&
+#make &&
+#make install &&
+#pecl channel-update pecl.php.net &&
+#pecl config-set php_ini /usr/local/lib/php.ini 
+#
 echo "Installing pecl packages"
 
 # pecl's conf settings for tmp folders don't cover all of its
@@ -91,7 +91,22 @@ if [ "$TMPFS" != "0" ] ; then
   mount -o,remount,rw,exec /var/tmp || { echo "Unable to remount /var/tmp with exec permissions"; exit 1; }
 fi
 
-(printf "\n" | pecl install -f apc) &&
+echo $VERSION | grep ^5\.4 > /dev/null
+if [ $? -eq 0 ] ; then
+  echo "APC pecl packages for 5.4.x are busted, building APC from svn"
+  cd /tmp &&
+  rm -rf apc &&
+  svn checkout http://svn.php.net:/repository/pecl/apc/trunk apc &&
+  cd apc &&
+  phpize &&
+  ./configure --enable-apc-pthreadrwlocks &&
+  make &&
+  make install 
+else
+  echo "Not PHP 5.4.x, so we can use pecl for apc"
+  printf "\n" | pecl install -f apc
+fi
+
 pecl install -f mongo
 
 # Regardless of whether any of that failed make sure we
@@ -183,23 +198,23 @@ EOM
   apt-get install libapache2-mod-fastcgi &&
 
   cat > /etc/apache2/mods-available/fastcgi.conf <<EOM
-  <IfModule mod_fastcgi.c>
-    # One shared PHP-managed fastcgi for all sites
-    Alias /fcgi /var/local/fcgi
-    # IMPORTANT: without this we get more than one instance
-    # of our wrapper, which itself spawns many PHP processes, so
-    # that would be Bad (tm)
-    FastCgiConfig -idle-timeout 20 -maxClassProcesses 1
-    <Directory /var/local/fcgi>
-      # Use the + so we don't clobber other options that
-      # may be needed. You might want FollowSymLinks here
-      Options +ExecCGI
-    </Directory>
-    AddType application/x-httpd-php5 .php
-    AddHandler fastcgi-script .fcgi
-    Action application/x-httpd-php5 /fcgi/php-cgi-wrapper.fcgi
-  </IfModule>
-  EOM
+<IfModule mod_fastcgi.c>
+# One shared PHP-managed fastcgi for all sites
+Alias /fcgi /var/local/fcgi
+# IMPORTANT: without this we get more than one instance
+# of our wrapper, which itself spawns many PHP processes, so
+# that would be Bad (tm)
+FastCgiConfig -idle-timeout 20 -maxClassProcesses 1
+<Directory /var/local/fcgi>
+# Use the + so we don't clobber other options that
+# may be needed. You might want FollowSymLinks here
+Options +ExecCGI
+</Directory>
+AddType application/x-httpd-php5 .php
+AddHandler fastcgi-script .fcgi
+Action application/x-httpd-php5 /fcgi/php-cgi-wrapper.fcgi
+</IfModule>
+EOM
 
   mkdir -p /var/local/fcgi/ &&
 
@@ -246,6 +261,11 @@ EOM
 fi
 
 if [ "$CENTOS" = "1" ] ; then
+  # This isn't ideal but I get consistent error 13 permission denied
+  # without it, citing an attempt to access this folder as user -1
+  # (nobody), even though Apache is configured to run as 'apache' by default
+  mkdir -p /etc/httpd/fastcgi-ipc/dynamic
+  chmod -R 755 /etc/httpd/fastcgi-ipc/dynamic
   cat > /etc/httpd/conf.d/fastcgi.conf <<EOM
 LoadModule fastcgi_module modules/mod_fastcgi.so
 # One shared PHP-managed fastcgi for all sites
@@ -254,6 +274,7 @@ Alias /fcgi /var/local/fcgi
 # of our wrapper, which itself spawns many PHP processes, so
 # that would be Bad (tm)
 FastCgiConfig -idle-timeout 20 -maxClassProcesses 1
+FastCgiIpcDir /etc/httpd/fastcgi-ipc
 <Directory /var/local/fcgi>
   # Use the + so we don't clobber other options that
   # may be needed. You might want FollowSymLinks here
@@ -293,7 +314,7 @@ EOM
   sleep 5 &&
   service httpd start &&
   echo "Switching Apache to the Worker MPM configuration" &&
-  perl -pi -e 's/^#HTTPD.*/HTTPD=/usr/sbin/httpd.worker/' /etc/sysconfig/httpd &&
+  perl -pi -e 's/^\#HTTPD.*/HTTPD=\/usr\/sbin\/httpd.worker/' /etc/sysconfig/httpd &&
   echo "Stopping and starting because Apache usually botches that the first time after the switch" &&
   sleep 5 && service httpd stop && sleep 5 && service httpd start && 
   echo "DONE! Now go check your websites."
