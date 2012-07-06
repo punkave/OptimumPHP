@@ -30,7 +30,7 @@ if [ "$UBUNTU" = "0" ] ; then
   fi
 fi
 
-if [ "$UBUNTU" = "1" ] ; then
+if [ "$UBUNTU" != "0" ] ; then
   CODENAME=`cat /etc/lsb-release | grep DISTRIB_CODENAME | perl -p -e 's/DISTRIB_CODENAME=(\w+)/$1/'`
 
   if [ -z "$CODENAME" ] ; then
@@ -46,7 +46,7 @@ if [ "$UBUNTU" = "1" ] ; then
     { echo "apt-get installs failed"; exit 1; } 
 fi
 
-if [ "$CENTOS" = "1" ] ; then
+if [ "$CENTOS" != "0" ] ; then
   yum -y install gcc gcc-c++ httpd libxml2-devel curl-devel openssl-devel libjpeg-devel libpng-devel freetype-devel libicu-devel libmcrypt-devel mysql-server mysql mysql-devel libxslt-devel autoconf libtool-ltdl-devel httpd-devel apr-devel apr subversion openldap-devel ||
     { echo "yum installs failed"; exit 1; }
   cd /tmp &&
@@ -79,7 +79,7 @@ make &&
 make install &&
 pecl channel-update pecl.php.net &&
 pecl config-set php_ini /usr/local/lib/php.ini 
-#
+
 echo "Installing pecl packages"
 
 # pecl's conf settings for tmp folders don't cover all of its
@@ -110,8 +110,8 @@ fi
 
 pecl install -f mongo
 
-# Regardless of whether any of that failed make sure we
-# put the tmp folder back to noexec
+ Regardless of whether any of that failed make sure we
+ put the tmp folder back to noexec
 if [ "$TMPFS" != "0" ] ; then
   echo "Re-disabling exec in /var/tmp"
   mount -o,remount,rw,noexec /var/tmp || { echo "Unable to remount /var/tmp with noexec permissions"; exit 1; } 
@@ -180,9 +180,8 @@ if [ -z "$MONGO" ] ; then
   exit 1
 fi
 
-if [ "$UBUNTU" = "1" ] ; then
+if [ "$UBUNTU" != "0" ] ; then
   MULTIVERSE=`grep -c multiverse /etc/apt/sources.list`
-
   if [ "$MULTIVERSE" == "0" ] ; then
     echo "Adding multiverse repositories to /etc/apt/sources.list so we can install real fastcgi."
     echo "(fcgid is not an adequate substitute, it doesn't support APC.)"
@@ -195,6 +194,7 @@ deb-src http://us.archive.ubuntu.com/ubuntu/ $CODENAME-updates multiverse
 EOM
   fi
 
+  echo "apt-get"
   apt-get update &&
   apt-get install libapache2-mod-fastcgi &&
 
@@ -261,7 +261,7 @@ EOM
   echo "http://punkave.com/window/2010/03/08/faster-php-kill-kill"
 fi
 
-if [ "$CENTOS" = "1" ] ; then
+if [ "$CENTOS" != "0" ] ; then
   # This isn't ideal but I get consistent error 13 permission denied
   # without it, citing an attempt to access this folder as user -1
   # (nobody), even though Apache is configured to run as 'apache' by default
