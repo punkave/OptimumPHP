@@ -25,8 +25,11 @@ UBUNTU=`grep -i ubuntu /etc/lsb-release | wc -l`
 if [ "$UBUNTU" = "0" ] ; then
   CENTOS=`uname -a | grep -i centos | wc -l` 
   if [ "$CENTOS" = "0" ] ; then
-    echo "This doesn't smell like either Ubuntu or CentOS. Giving up."
-    exit 1
+    CENTOS=`cat /etc/redhat-release | grep -i centos | wc -l` 
+    if [ "$CENTOS" = "0" ] ; then
+      echo "This doesn't smell like either Ubuntu or CentOS. Giving up."
+      exit 1
+    fi
   fi
 fi
 
@@ -47,7 +50,7 @@ if [ "$UBUNTU" != "0" ] ; then
 fi
 
 if [ "$CENTOS" != "0" ] ; then
-  yum -y install gcc gcc-c++ httpd libxml2-devel curl-devel openssl-devel libjpeg-devel libpng-devel freetype-devel libicu-devel libmcrypt-devel mysql-server mysql mysql-devel libxslt-devel autoconf libtool-ltdl-devel httpd-devel apr-devel apr subversion openldap-devel ||
+  yum -y install gcc gcc-c++ httpd libxml2-devel curl-devel openssl-devel libidn-devel libjpeg-devel libpng-devel freetype-devel libicu-devel libmcrypt-devel mysql-server mysql mysql-devel libxslt-devel autoconf libtool-ltdl-devel httpd-devel apr-devel apr subversion openldap-devel ||
     { echo "yum installs failed"; exit 1; }
   cd /tmp &&
   rm -rf fastcgi-compile &&
@@ -63,20 +66,20 @@ if [ "$CENTOS" != "0" ] ; then
     { echo "fastcgi compile from source failed, fcgid won't do"; exit 1; }
 fi
 
-cd /tmp
-rm -f php-$VERSION.tar.gz &&
-rm -rf php-$VERSION &&
-# --trust-server-names doesn't exist in CentOS 5.6 build of wget
-wget http://us3.php.net/get/php-$VERSION.tar.gz/from/us.php.net/mirror -O php-$VERSION.tar.gz &&
-tar -zxf php-$VERSION.tar.gz &&
-cd php-$VERSION &&
-# CGI (fastcgi) binary. Also installs CLI binary
-'./configure' '--enable-cgi' '--enable-fastcgi' '--with-gd' '--with-pdo-mysql' '--with-curl' '--with-mysql' '--with-ldap' '--with-freetype-dir=/usr' '--with-jpeg-dir=/usr' '--with-mcrypt' '--with-zlib' '--enable-mbstring' '--enable-ftp' '--with-xsl' '--with-openssl' '--with-kerberos' '--enable-exif' '--enable-intl' &&
-#5.3.10 won't build in Ubuntu 11.10 without this additional library
-perl -pi -e 's/^EXTRA_LIBS = /EXTRA_LIBS = -lstdc++ /' Makefile
-make clean &&
-make &&
-make install &&
+#cd /tmp
+#rm -f php-$VERSION.tar.gz &&
+#rm -rf php-$VERSION &&
+## --trust-server-names doesn't exist in CentOS 5.6 build of wget
+#wget http://us3.php.net/get/php-$VERSION.tar.gz/from/us.php.net/mirror -O php-$VERSION.tar.gz &&
+#tar -zxf php-$VERSION.tar.gz &&
+#cd php-$VERSION &&
+## CGI (fastcgi) binary. Also installs CLI binary
+#'./configure' '--enable-cgi' '--enable-fastcgi' '--with-gd' '--with-pdo-mysql' '--with-curl' '--with-mysql' '--with-ldap' '--with-freetype-dir=/usr' '--with-jpeg-dir=/usr' '--with-mcrypt' '--with-zlib' '--enable-mbstring' '--enable-ftp' '--with-xsl' '--with-openssl' '--with-kerberos' '--enable-exif' '--enable-intl' &&
+##5.3.10 won't build in Ubuntu 11.10 without this additional library
+#perl -pi -e 's/^EXTRA_LIBS = /EXTRA_LIBS = -lstdc++ /' Makefile
+#make clean &&
+#make &&
+#make install &&
 pecl channel-update pecl.php.net &&
 pecl config-set php_ini /usr/local/lib/php.ini 
 
@@ -110,8 +113,8 @@ fi
 
 pecl install -f mongo
 
- Regardless of whether any of that failed make sure we
- put the tmp folder back to noexec
+# Regardless of whether any of that failed make sure we
+# put the tmp folder back to noexec
 if [ "$TMPFS" != "0" ] ; then
   echo "Re-disabling exec in /var/tmp"
   mount -o,remount,rw,noexec /var/tmp || { echo "Unable to remount /var/tmp with noexec permissions"; exit 1; } 
@@ -311,13 +314,13 @@ EOM
   if [ -e /etc/httpd/conf.d/php.conf ] ; then
     mv /etc/httpd/conf.d/php.conf /etc/httpd/conf.d/php.conf.disabled-see-fastcgi
   fi
-  service httpd stop &&
+  /sbin/service httpd stop &&
   sleep 5 &&
-  service httpd start &&
+  /sbin/service httpd start &&
   echo "Switching Apache to the Worker MPM configuration" &&
   perl -pi -e 's/^\#HTTPD.*/HTTPD=\/usr\/sbin\/httpd.worker/' /etc/sysconfig/httpd &&
   echo "Stopping and starting because Apache usually botches that the first time after the switch" &&
-  sleep 5 && service httpd stop && sleep 5 && service httpd start && 
+  sleep 5 && /sbin/service httpd stop && sleep 5 && /sbin/service httpd start && 
   echo "DONE! Now go check your websites."
   echo
   echo "IF YOUR PHP SOURCE CODE JUST DOWNLOADS AS A FILE TO THE BROWSER:"
