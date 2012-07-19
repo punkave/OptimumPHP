@@ -66,20 +66,20 @@ if [ "$CENTOS" != "0" ] ; then
     { echo "fastcgi compile from source failed, fcgid won't do"; exit 1; }
 fi
 
-#cd /tmp
-#rm -f php-$VERSION.tar.gz &&
-#rm -rf php-$VERSION &&
-## --trust-server-names doesn't exist in CentOS 5.6 build of wget
-#wget http://us3.php.net/get/php-$VERSION.tar.gz/from/us.php.net/mirror -O php-$VERSION.tar.gz &&
-#tar -zxf php-$VERSION.tar.gz &&
-#cd php-$VERSION &&
-## CGI (fastcgi) binary. Also installs CLI binary
-#'./configure' '--enable-cgi' '--enable-fastcgi' '--with-gd' '--with-pdo-mysql' '--with-curl' '--with-mysql' '--with-ldap' '--with-freetype-dir=/usr' '--with-jpeg-dir=/usr' '--with-mcrypt' '--with-zlib' '--enable-mbstring' '--enable-ftp' '--with-xsl' '--with-openssl' '--with-kerberos' '--enable-exif' '--enable-intl' &&
-##5.3.10 won't build in Ubuntu 11.10 without this additional library
-#perl -pi -e 's/^EXTRA_LIBS = /EXTRA_LIBS = -lstdc++ /' Makefile
-#make clean &&
-#make &&
-#make install &&
+cd /tmp
+rm -f php-$VERSION.tar.gz &&
+rm -rf php-$VERSION &&
+# --trust-server-names doesn't exist in CentOS 5.6 build of wget
+wget http://us3.php.net/get/php-$VERSION.tar.gz/from/us.php.net/mirror -O php-$VERSION.tar.gz &&
+tar -zxf php-$VERSION.tar.gz &&
+cd php-$VERSION &&
+# CGI (fastcgi) binary. Also installs CLI binary
+'./configure' '--enable-cgi' '--enable-fastcgi' '--with-gd' '--with-pdo-mysql' '--with-curl' '--with-mysql' '--with-ldap' '--with-freetype-dir=/usr' '--with-jpeg-dir=/usr' '--with-mcrypt' '--with-zlib' '--enable-mbstring' '--enable-ftp' '--with-xsl' '--with-openssl' '--with-kerberos' '--enable-exif' '--enable-intl' &&
+#5.3.10 won't build in Ubuntu 11.10 without this additional library
+perl -pi -e 's/^EXTRA_LIBS = /EXTRA_LIBS = -lstdc++ /' Makefile
+make clean &&
+make &&
+make install &&
 pecl channel-update pecl.php.net &&
 pecl config-set php_ini /usr/local/lib/php.ini 
 
