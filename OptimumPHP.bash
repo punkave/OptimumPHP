@@ -46,12 +46,12 @@ if [ "$UBUNTU" != "0" ] ; then
   apt-get -y install build-essential apache2 libxml2-dev libcurl4-openssl-dev \
     libcurl4-openssl-dev libjpeg-dev libpng-dev libfreetype6-dev libicu-dev \
     libmcrypt-dev mysql-server mysql-client libmysqlclient-dev libxslt-dev \
-    autoconf libltdl-dev libldap2-dev || 
+    autoconf libltdl-dev libldap2-dev postgresql-client libpq-dev || 
     { echo "apt-get installs failed"; exit 1; } 
 fi
 
 if [ "$CENTOS" != "0" ] ; then
-  yum -y install gcc gcc-c++ httpd libxml2-devel curl-devel openssl-devel libidn-devel libjpeg-devel libpng-devel freetype-devel libicu-devel libmcrypt-devel mysql-server mysql mysql-devel libxslt-devel autoconf libtool-ltdl-devel httpd-devel apr-devel apr subversion openldap-devel ||
+  yum -y install gcc gcc-c++ httpd libxml2-devel curl-devel openssl-devel libidn-devel libjpeg-devel libpng-devel freetype-devel libicu-devel libmcrypt-devel mysql-server mysql mysql-devel libxslt-devel autoconf libtool-ltdl-devel httpd-devel apr-devel apr subversion openldap-devel postgresql-devel ||
     { echo "yum installs failed"; exit 1; }
   cd /tmp &&
   rm -rf fastcgi-compile &&
@@ -75,7 +75,7 @@ wget http://us3.php.net/get/php-$VERSION.tar.gz/from/us.php.net/mirror -O php-$V
 tar -zxf php-$VERSION.tar.gz &&
 cd php-$VERSION &&
 # CGI (fastcgi) binary. Also installs CLI binary
-'./configure' '--enable-cgi' '--enable-fastcgi' '--with-gd' '--with-pdo-mysql' '--with-curl' '--with-mysql' '--with-ldap' '--with-freetype-dir=/usr' '--with-jpeg-dir=/usr' '--with-mcrypt' '--with-zlib' '--enable-mbstring' '--enable-ftp' '--with-xsl' '--with-openssl' '--with-kerberos' '--enable-exif' '--enable-intl' &&
+'./configure' '--enable-cgi' '--enable-fastcgi' '--with-gd' '--with-pdo-mysql' '--with-curl' '--with-mysql' '--with-ldap' '--with-freetype-dir=/usr' '--with-jpeg-dir=/usr' '--with-mcrypt' '--with-zlib' '--enable-mbstring' '--enable-ftp' '--with-xsl' '--with-openssl' '--with-kerberos' '--enable-exif' '--enable-intl' '--with-pdo-pgsql' &&
 #5.3.10 won't build in Ubuntu 11.10 without this additional library
 perl -pi -e 's/^EXTRA_LIBS = /EXTRA_LIBS = -lstdc++ /' Makefile
 make clean &&
