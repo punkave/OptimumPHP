@@ -22,6 +22,7 @@ VERSION=$1
 LIMIT=$2
 
 UBUNTU=`grep -i ubuntu /etc/lsb-release | wc -l`
+CENTOS="0"
 if [ "$UBUNTU" = "0" ] ; then
   CENTOS=`uname -a | grep -i centos | wc -l` 
   if [ "$CENTOS" = "0" ] ; then
