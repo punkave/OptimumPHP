@@ -78,7 +78,8 @@ cd php-$VERSION &&
 #5.3.10 won't build in Ubuntu 11.10 without this additional library
 perl -pi -e 's/^EXTRA_LIBS = /EXTRA_LIBS = -lstdc++ /' Makefile
 make clean &&
-make &&
+# Make very sure we spot failed PHP builds
+make || { echo "PHP compile FAILED"; exit 1; }
 make install &&
 pecl channel-update pecl.php.net &&
 pecl config-set php_ini /usr/local/lib/php.ini 
