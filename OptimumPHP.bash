@@ -73,7 +73,23 @@ rm -rf php-$VERSION &&
 # --trust-server-names doesn't exist in CentOS 5.6 build of wget
 wget http://us3.php.net/get/php-$VERSION.tar.gz/from/us.php.net/mirror -O php-$VERSION.tar.gz &&
 tar -zxf php-$VERSION.tar.gz &&
-cd php-$VERSION &&
+cd php-$VERSION  || ( echo "Could not download, untar and cd into php-$VERSION"; exit 1)
+
+UBUNTU=`grep -i ubuntu /etc/lsb-release | wc -l`
+if [ "$UBUNTU" != "0" ] ; then
+  UVERSION=`lsb_release -r -s | cut -d. -f1`
+  if [ "$UVERSION" -ge 12 ] ; then
+    if [ `getconf LONG_BIT` = "64" ] ; then      # Fix PHP configure script to find the LDAP libraries. There's no clean 
+      # parameter to find the libraries in a separate place just for LDAP 
+      # without losing the # includes, so hack the configure file
+      echo "Fixing ./configure to find 64 bit LDAP libraries on Ubuntu"      
+      perl -pi -e 's/LDAP_LIBDIR=.*/LDAP_LIBDIR=\/usr\/lib\/x86_64-linux-gnu/g' ./configure
+    fi
+  fi
+fi
+
+echo "** PUT PHP COMPILATION BACK!"
+
 # CGI (fastcgi) binary. Also installs CLI binary
 './configure' '--enable-cgi' '--enable-fastcgi' '--with-gd' '--with-pdo-mysql' '--with-curl' '--with-mysql' '--with-ldap' '--with-freetype-dir=/usr' '--with-jpeg-dir=/usr' '--with-mcrypt' '--with-zlib' '--enable-mbstring' '--enable-ftp' '--with-xsl' '--with-openssl' '--with-kerberos' '--enable-exif' '--enable-intl' '--with-pdo-pgsql' &&
 #5.3.10 won't build in Ubuntu 11.10 without this additional library
@@ -185,17 +201,31 @@ if [ -z "$MONGO" ] ; then
   exit 1
 fi
 
+# 12.04 has a multiverse line already for security only
+# (at least on one host). Work around that by adding the
+# other lines if that's the only one, but then adding the
+# security line as well where it is not present
+
 if [ "$UBUNTU" != "0" ] ; then
-  MULTIVERSE=`grep -c multiverse /etc/apt/sources.list`
+  MULTIVERSE=`grep -v security /etc/apt/sources.list | grep -c multiverse`
   if [ "$MULTIVERSE" == "0" ] ; then
     echo "Adding multiverse repositories to /etc/apt/sources.list so we can install real fastcgi."
     echo "(fcgid is not an adequate substitute, it doesn't support APC.)"
     cat  >> /etc/apt/sources.list <<EOM
-# tom@punkave.com: we want multiverse support so we can have real mod_fastcgi
+# OptimumPHP: we want multiverse support so we can have real mod_fastcgi
 deb http://us.archive.ubuntu.com/ubuntu/ $CODENAME multiverse
 deb-src http://us.archive.ubuntu.com/ubuntu/ $CODENAME multiverse
 deb http://us.archive.ubuntu.com/ubuntu/ $CODENAME-updates multiverse
 deb-src http://us.archive.ubuntu.com/ubuntu/ $CODENAME-updates multiverse
+EOM
+  fi
+  MULTIVERSE=`grep security /etc/apt/sources.list | grep -c multiverse`
+  if [ "$MULTIVERSE" == "0" ] ; then
+    echo "Adding multiverse security repository to /etc/apt/sources.list"
+    cat  >> /etc/apt/sources.list <<EOM
+#OptimumPHP: we want multiverse support so we can have real mod_fastcgi
+deb http://us.archive.ubuntu.com/ubuntu/ $CODENAME-security multiverse
+deb-src http://us.archive.ubuntu.com/ubuntu/ $CODENAME-security multiverse
 EOM
   fi
 
