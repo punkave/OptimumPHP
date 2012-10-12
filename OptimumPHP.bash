@@ -24,9 +24,9 @@ LIMIT=$2
 UBUNTU=`grep -i ubuntu /etc/lsb-release | wc -l`
 CENTOS="0"
 if [ "$UBUNTU" = "0" ] ; then
-  CENTOS=`uname -a | grep -i centos | wc -l` 
+  CENTOS=`uname -a | grep -i centos | wc -l`
   if [ "$CENTOS" = "0" ] ; then
-    CENTOS=`cat /etc/redhat-release | grep -i centos | wc -l` 
+    CENTOS=`cat /etc/redhat-release | grep -i centos | wc -l`
     if [ "$CENTOS" = "0" ] ; then
       echo "This doesn't smell like either Ubuntu or CentOS. Giving up."
       exit 1
@@ -46,8 +46,8 @@ if [ "$UBUNTU" != "0" ] ; then
   apt-get -y install build-essential apache2 libxml2-dev libcurl4-openssl-dev \
     libcurl4-openssl-dev libjpeg-dev libpng-dev libfreetype6-dev libicu-dev \
     libmcrypt-dev mysql-server mysql-client libmysqlclient-dev libxslt-dev \
-    autoconf libltdl-dev libldap2-dev postgresql-client libpq-dev || 
-    { echo "apt-get installs failed"; exit 1; } 
+    autoconf libltdl-dev libldap2-dev postgresql-client libpq-dev ||
+    { echo "apt-get installs failed"; exit 1; }
 fi
 
 if [ "$CENTOS" != "0" ] ; then
@@ -74,6 +74,14 @@ rm -rf php-$VERSION &&
 wget http://us3.php.net/get/php-$VERSION.tar.gz/from/us.php.net/mirror -O php-$VERSION.tar.gz &&
 tar -zxf php-$VERSION.tar.gz &&
 cd php-$VERSION &&
+if [ "$CENTOS" != "0" ] ; then
+  if [ `getconf LONG_BIT` = "64" ] ; then
+    # Fix PHP configure script to find the LDAP libraries. There's no clean parameter
+    # to find the libraries in a separate place just for LDAP without losing the
+    # includes, so hack the configure file
+    perl -pi -e 's/LDAP_LIBDIR=.*/LDAP_LIBDIR=\/usr\/lib\/x86_64-linux-gnu/g' ./configure
+  fi
+fi
 # CGI (fastcgi) binary. Also installs CLI binary
 './configure' '--enable-cgi' '--enable-fastcgi' '--with-gd' '--with-pdo-mysql' '--with-curl' '--with-mysql' '--with-ldap' '--with-freetype-dir=/usr' '--with-jpeg-dir=/usr' '--with-mcrypt' '--with-zlib' '--enable-mbstring' '--enable-ftp' '--with-xsl' '--with-openssl' '--with-kerberos' '--enable-exif' '--enable-intl' '--with-pdo-pgsql' &&
 #5.3.10 won't build in Ubuntu 11.10 without this additional library
@@ -83,7 +91,7 @@ make clean &&
 make || { echo "PHP compile FAILED"; exit 1; }
 make install &&
 pecl channel-update pecl.php.net &&
-pecl config-set php_ini /usr/local/lib/php.ini 
+pecl config-set php_ini /usr/local/lib/php.ini
 
 echo "Installing pecl packages"
 
@@ -107,7 +115,7 @@ if [ $? -eq 0 ] ; then
   phpize &&
   ./configure --enable-apc-pthreadrwlocks &&
   make &&
-  make install 
+  make install
 else
   echo "Not PHP 5.4.x, so we can use pecl for apc"
   printf "\n" | pecl install -f apc
@@ -119,7 +127,7 @@ pecl install -f mongo
 # put the tmp folder back to noexec
 if [ "$TMPFS" != "0" ] ; then
   echo "Re-disabling exec in /var/tmp"
-  mount -o,remount,rw,noexec /var/tmp || { echo "Unable to remount /var/tmp with noexec permissions"; exit 1; } 
+  mount -o,remount,rw,noexec /var/tmp || { echo "Unable to remount /var/tmp with noexec permissions"; exit 1; }
 fi
 
 CONFIGURED=`grep '^extension=mongo.so' /usr/local/lib/php.ini`
@@ -241,12 +249,12 @@ EOM
   # Also we use stop, sleep, start because restart is too clever and doesn't finish the job sometimes
   echo "Restarting Apache in a FastCGI configuration" &&
   if [ -e /etc/apache2/mods-enabled/php5.load ] ; then
-    a2dismod php5 
+    a2dismod php5
   fi && a2enmod fastcgi && a2enmod actions && apache2ctl stop && sleep 5 && apache2ctl start &&
   echo "Switching Apache to the Worker MPM configuration" &&
   apt-get -y install apache2-mpm-worker &&
   echo "Stopping and starting because Apache usually botches that the first time after the switch" &&
-  sleep 5 && apache2ctl stop && sleep 5 && apache2ctl start && 
+  sleep 5 && apache2ctl stop && sleep 5 && apache2ctl start &&
   echo "DONE! Now go check your websites."
   echo
   echo "IF YOUR PHP SOURCE CODE JUST DOWNLOADS AS A FILE TO THE BROWSER:"
@@ -300,7 +308,7 @@ EOM
 # will swap, making people wait and locking us out of our own box.
 # Better idea: just make people wait to begin with
 PHP_FCGI_CHILDREN=$LIMIT
-# Limit total requests per process to deal with inevitable PHP memory 
+# Limit total requests per process to deal with inevitable PHP memory
 # leak bugs (in PHP itself, that is)
 PHP_FCGI_MAX_REQUESTS=100
 export PHP_FCGI_CHILDREN
@@ -308,9 +316,9 @@ exec /usr/local/bin/php-cgi -c /usr/local/lib/php.ini
 EOM
 
   chmod -R 755 /var/local/fcgi &&
-  # Chicken and egg problems galore if we don't switch to fastcgi before we 
+  # Chicken and egg problems galore if we don't switch to fastcgi before we
   # switch to worker thread MPM
-  # Also we use stop, sleep, start because restart is too clever and doesn't 
+  # Also we use stop, sleep, start because restart is too clever and doesn't
   # finish the job sometimes
   echo "Restarting Apache in a FastCGI configuration" &&
   if [ -e /etc/httpd/conf.d/php.conf ] ; then
@@ -322,7 +330,7 @@ EOM
   echo "Switching Apache to the Worker MPM configuration" &&
   perl -pi -e 's/^\#HTTPD.*/HTTPD=\/usr\/sbin\/httpd.worker/' /etc/sysconfig/httpd &&
   echo "Stopping and starting because Apache usually botches that the first time after the switch" &&
-  sleep 5 && /sbin/service httpd stop && sleep 5 && /sbin/service httpd start && 
+  sleep 5 && /sbin/service httpd stop && sleep 5 && /sbin/service httpd start &&
   echo "DONE! Now go check your websites."
   echo
   echo "IF YOUR PHP SOURCE CODE JUST DOWNLOADS AS A FILE TO THE BROWSER:"
