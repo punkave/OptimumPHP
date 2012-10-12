@@ -71,7 +71,8 @@ cd /tmp
 rm -f php-$VERSION.tar.gz &&
 rm -rf php-$VERSION &&
 # --trust-server-names doesn't exist in CentOS 5.6 build of wget
-wget http://us3.php.net/get/php-$VERSION.tar.gz/from/us.php.net/mirror -O php-$VERSION.tar.gz &&
+# us.php.net is not a valid mirror anymore, use us3
+wget http://us3.php.net/get/php-$VERSION.tar.gz/from/us3.php.net/mirror -O php-$VERSION.tar.gz &&
 tar -zxf php-$VERSION.tar.gz &&
 cd php-$VERSION  || ( echo "Could not download, untar and cd into php-$VERSION"; exit 1)
 
